@@ -151,7 +151,6 @@
 
         // Toggle line numbers visibility
         function toggleLineNumbers() {
-            const container = document.getElementById('editorContainer');
             const lineNumbersDiv = document.getElementById('lineNumbers');
 
             state.lineNumbersVisible = !state.lineNumbersVisible;
@@ -164,6 +163,36 @@
             }
 
             localStorage.setItem('lineNumbersVisible', state.lineNumbersVisible);
+        }
+
+        // Apply localStorage changes made in another tab without writing them back.
+        function handleStorageChange(e) {
+            if (e.storageArea !== localStorage) return;
+
+            // A null key means localStorage was cleared in another tab.
+            if (e.key === 'storedText' || e.key === null) {
+                const textarea = document.getElementById('typingCanvas');
+                const savedText = localStorage.getItem('storedText') || '';
+
+                if (textarea.value !== savedText) {
+                    const { selectionStart, selectionEnd, selectionDirection,
+                        scrollTop, scrollLeft } = textarea;
+
+                    textarea.value = savedText;
+                    textarea.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+                    textarea.scrollTop = scrollTop;
+                    textarea.scrollLeft = scrollLeft;
+                    updateLineNumbers();
+                    syncScroll();
+                }
+            }
+
+            if (e.key === 'lineNumbersVisible' || e.key === null) {
+                state.lineNumbersVisible = localStorage.getItem('lineNumbersVisible') !== 'false';
+                document.getElementById('lineNumbers').classList.toggle('hidden', !state.lineNumbersVisible);
+                updateLineNumbers();
+                syncScroll();
+            }
         }
 
         // Handle Ctrl+Shift+L / Cmd+Shift+L shortcut for toggling line numbers
@@ -199,6 +228,7 @@
             typingCanvas.addEventListener('keydown', handleTabKey);
             document.addEventListener('keydown', handleToggleShortcut);
             window.addEventListener('resize', updateLineNumbers);
+            window.addEventListener('storage', handleStorageChange);
         });
     </script>
 </body>
